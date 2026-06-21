@@ -16,7 +16,7 @@ CACHE = {"data": None, "timestamp": 0}
 CACHE_TTL = 900  # 15 хвилин
 
 def fetch_and_parse_alerts():
-    response = requests.get(ALERT_URL, timeout=15)
+    response = requests.get(ALERT_URL, timeout=10)
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
     text_data = soup.get_text(separator="\n")
