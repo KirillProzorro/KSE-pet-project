@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аналіз часових рядів повітряних тривог</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { text-align: center; color: #1a202c; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
+        .card h3 { margin: 0 0 10px 0; font-size: 14px; color: #718096; text-transform: uppercase; }
+        .card p { margin: 0; font-size: 28px; font-weight: bold; color: #e53e3e; }
+        .chart-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Аналіз повітряних тривог (Київ)</h1>
+        
+        <div class="grid" id="summary">
+            <div class="card"><h3>Завантаження...</h3><p>...</p></div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="last30Chart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="hourChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(response => {
+                if (!response.ok) {
+                    document.getElementById('summary').innerHTML = `<div class="card"><h3>Помилка</h3><p>Неможливо завантажити дані</p></div>`;
+                    return;
+                }
+                const data = response.data;
+                
+                // Картки з метриками
+                document.getElementById('summary').innerHTML = `
+                    <div class="card"><h3>Загальна кількість</h3><p>${data.total}</p></div>
+                    <div class="card"><h3>Тривалість (Годин)</h3><p>${data.total_hours}</p></div>
+                    <div class="card"><h3>Середня (Хвилин)</h3><p>${data.avg_min}</p></div>
+                    <div class="card"><h3>Найдовша (Хвилин)</h3><p>${data.max_duration_min}</p></div>
+                `;
+
+                // Графік: Останні 30 днів
+                new Chart(document.getElementById('last30Chart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(data.last30),
+                        datasets: [{
+                            label: 'Кількість тривог (останні 30 днів)',
+                            data: Object.values(data.last30),
+                            backgroundColor: '#e53e3e',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+                });
+
+                // Графік: По годинах
+                new Chart(document.getElementById('hourChart'), {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(data.by_hour).map(h => h.padStart(2, '0') + ':00'),
+                        datasets: [{
+                            label: 'Частота тривог за годинами доби',
+                            data: Object.values(data.by_hour),
+                            borderColor: '#3182ce',
+                            backgroundColor: 'rgba(49, 130, 206, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+                });
+            });
+    </script>
+</body>
+</html>
